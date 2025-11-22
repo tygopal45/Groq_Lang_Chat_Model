@@ -1,42 +1,49 @@
-# Q & A Chatbot
-
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
+import gradio as gr
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage
 
-from dotenv import load_dotenv
 
-load_dotenv()
-
-import streamlit as st
-
-# function to load llm model and get response
-
-def get_groq_response(question):
-    llm = ChatGroq(api_key=os.getenv("GROQ_API_KEY"),model="llama-3.3-70b-versatile",temperature=0.6,max_tokens=60)
+def get_groq_response(question: str) -> str:
+    if not question:
+        return ""
+    llm = ChatGroq(
+        api_key=os.getenv("GROQ_API_KEY"),
+        model="llama-3.3-70b-versatile",
+        temperature=0.6,
+        max_tokens=60
+    )
     messages = [
         SystemMessage(content="You are a helpful assistant."),
         HumanMessage(content=question)
     ]
-    resp = llm.invoke(messages)     
-    return resp.content             # returns only the text, not the object
-    return response
-
-# Intialize our streamlit app
-
-st.set_page_config(page_title="Q&A Demo")
-
-st.header("Langchain Application")
-
-input=st.text_input("Input: ", key="input")
-
-response = get_groq_response(input)
+    resp = llm.invoke(messages)
+    return getattr(resp, "content", str(resp))
 
 
-submit = st.button("Ask the question.")
+with gr.Blocks() as demo:
+    gr.Markdown("## Q & A Chatbot")
+    gr.Markdown("Type a question and click **Ask the question**.")
 
-# If ask is clicked
+    txt = gr.Textbox(
+        label="Input",
+        placeholder="Ask a question...",
+        lines=2
+    )
 
-if submit:
-    st.subheader("The response is :")
-    st.write(response)
+    btn = gr.Button("Ask the question")
+
+    out = gr.Textbox(
+        label="Response",
+        interactive=False,
+        lines=4
+    )
+
+    btn.click(fn=get_groq_response, inputs=txt, outputs=out)
+
+
+if __name__ == "__main__":
+    demo.launch()
